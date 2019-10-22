@@ -2,7 +2,9 @@ require('dotenv').config();
 const ms = require('ms');
 const db = require('diskdb');
 const T = require('./twit');
+const FP = require('functional-promises');
 const chunkify = require('./chunking');
+const transforms = require('./transforms.js');
 
 db.connect('./db', ['users', 'hydratedUsers']);
 
@@ -14,12 +16,7 @@ async function getListOfPeopleYouFollow(cursor = -1) {
     count: 200,
     cursor,
   });
-  const followerSet = data.users.map(user => ({
-    screen_name: user.screen_name,
-    name: user.name,
-    id: user.id,
-  }));
-
+  const followerSet = data.users.map(transforms.followers);
   console.log(followerSet);
   const screenNames = followerSet.map(user => user.screen_name);
   // save to DB
@@ -40,27 +37,14 @@ async function findLastTweet(screenNames) {
 
   const cutList = users
     // some people deleted all their tweets, we mark them as old
-    .map(user => {
-      user.status = user.status || { created_at: 0 };
-      return user;
-    })
+    .map(transforms.setUserStatus)
     // massage the data into what we need
-    .map(user => ({
-      screen_name: user.screen_name,
-      id: user.id,
-      lastTweet: new Date(user.status.created_at).getTime(),
-      timeSinceLastTweet:
-        Date.now() - new Date(user.status.created_at).getTime(),
-    }))
+    .map(transforms.userWithLastTweetTime)
     // cut anyone over the limit
-    .map(user => {
-      console.log(
-        `${user.screen_name} last tweeted ${ms(user.timeSinceLastTweet)}`
-      );
-      return user;
-    })
-    .filter(user => user.timeSinceLastTweet > cutLimit);
-  console.log(cutList);
+    .map(transforms.showUserInfo)
+    .filter(transforms.isActiveTwitterPoster(cutLimit));
+    
+  console.log('cutList', cutList);
   return cutList;
 }
 
@@ -75,8 +59,9 @@ async function hydrateUsers() {
 
 async function massUnfollow() {
   const users = db.hydratedUsers.find();
-  const userPromises = users.map(user => unfollow(user.screen_name));
-  const statuses = await Promise.allSettled(userPromises);
+  console.log('About to unfollow the following users:', users);
+  // const userPromises = users.map(user => unfollow(user.screen_name));
+  // const statuses = await Promise.allSettled(userPromises);
   console.log(statuses);
 }
 async function unfollow(screen_name) {
