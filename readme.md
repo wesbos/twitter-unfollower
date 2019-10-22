@@ -5,6 +5,7 @@ You'll need a developer keys from twitter → https://developer.twitter.com/en/a
 Put your keys in a file called `.env` like this:
 
 ```bash
+username=wesbos
 consumer_key=wowowowo
 consumer_secret=yayayaay
 access_token=teeheee

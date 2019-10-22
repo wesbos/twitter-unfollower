@@ -10,7 +10,7 @@ const cutLimit = ms('280 days');
 
 async function getListOfPeopleYouFollow(cursor = -1) {
   const { data } = await T.get('friends/list', {
-    screen_name: 'wesbos',
+    screen_name: process.env.username,
     count: 200,
     cursor,
   });
