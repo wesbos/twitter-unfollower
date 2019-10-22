@@ -29,7 +29,7 @@ You could fix this by `npm install waait`
 then:
 
 ```
-const wait = require('wait');
+const wait = require('waait');
 // ... then in your getListOfPeopleYouFollow function, add this:
 if (data.next_cursor) {
     // wait 1 min
