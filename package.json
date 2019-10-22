@@ -1,0 +1,17 @@
+{
+  "name": "0244-untweeps",
+  "version": "1.0.0",
+  "description": "Unfollow Stale Accounts",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "diskdb": "^0.1.17",
+    "dotenv": "^8.2.0",
+    "ms": "^2.1.2",
+    "twit": "^2.2.11"
+  }
+}
