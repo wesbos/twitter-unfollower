@@ -13,5 +13,19 @@ access_token_secret=errrrnngggg
 
 Set the `cutLimit` variable in `index.js` and then run it with `npm start`.
 
+## Some things to note
 
+Rate limits on twitter are real. If you follow more than 3000 people, you'll hit the 200 x 15 rate limit. 
 
+You could fix this by `npm install waait`
+
+then:
+
+```
+const wait = require('wait');
+// ... then in your getListOfPeopleYouFollow function, add this:
+if (data.next_cursor) {
+    // wait 1 min
+    await wait(60000);
+    getListOfPeopleYouFollow(data.next_cursor);
+```
