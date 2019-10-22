@@ -2,5 +2,4 @@
 node_modules/
 .DS_Store
 haters/
-db/hydratedUsers.js
-db/users.js
+db/*.json
