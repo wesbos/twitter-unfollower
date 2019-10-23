@@ -7,4 +7,28 @@ const T = new Twit({
   access_token_secret: process.env.access_token_secret,
 });
 
-module.exports = T;
+module.exports = {
+
+  getFriendList(username, cursor) {
+    return T.get('friends/list', {
+      screen_name: username,
+      count: 200,
+      cursor,
+    })
+      .then(({ data }) => data);
+  },
+  
+  getUsers(screenNames) {
+    return T.post('users/lookup', {
+      screen_name: screenNames
+    })
+      .then(({ data }) => data);
+  },
+
+  unfollow(screen_name) {
+    return T.post('friendships/destroy', { screen_name })
+  }
+
+};
+
+

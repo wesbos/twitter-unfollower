@@ -28,3 +28,5 @@ exports.showUserInfo = user => {
   return user;
 };
 
+exports.getProp = (propName, defaultValue = null) => (obj) => obj[propName] || defaultValue;
+
