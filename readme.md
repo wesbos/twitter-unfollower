@@ -1,6 +1,6 @@
 Requirements:
 
-* Node 11+ because it uses array.flat() 
+* Node 12.9.0+ because it uses Promise.allSettled() 
 * Twitter dev keys (more below)
 * A good attitude 
 
