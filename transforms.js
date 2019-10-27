@@ -1,3 +1,12 @@
+const camelCase = require('lodash.camelcase');
+
+exports.camelify = object => {
+  return Object.entries(object)
+  .reduce((obj, [key, value]) =>{
+    obj[camelCase(key)] = typeof value === 'object' ? camelify(value) : value;
+    return obj
+  }, {})
+}
 
 exports.followers = user => ({
   screen_name: user.screen_name,

@@ -27,8 +27,7 @@ function getListOfPeopleYouFollow(cursor = -1, retries = 0) {
     .catch(retryGetFollowers(cursor, retries))
     .then(data => {
       return FP.resolve(data.users)      // .concurrency(1)
-        .map(transforms.followers)
-        .map(transforms.getProp('screen_name'))
+        .then(data => db.users.save(data))
         .then(screenNames => db.users.save(screenNames))
         .thenIf(() => data.next_cursor,
           () => getListOfPeopleYouFollow(data.next_cursor), 
@@ -38,8 +37,13 @@ function getListOfPeopleYouFollow(cursor = -1, retries = 0) {
 }
 
 function hydrateUsers(users = db.users.find()) {
-  return FP.resolve(chunkify(users, 100))
-    .concurrency(2)
+  const screenNames = users
+    .map(transforms.followers)
+    .map(transforms.getProp('screenName'))
+  
+  console.log(`Loading tweets for ${screenNames.length} users`)
+  return FP.resolve(chunkify(screenNames, 100))
+    .concurrency(1)
     .map(findLastTweet)
     .then(results => db.hydratedUsers.save(results));
 }

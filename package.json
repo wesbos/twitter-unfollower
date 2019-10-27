@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "debug": "^4.1.1",
     "diskdb": "^0.1.17",
     "dotenv": "^8.2.0",
     "functional-promises": "^1.7.94",

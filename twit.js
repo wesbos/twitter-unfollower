@@ -1,4 +1,5 @@
 const Twit = require('twit');
+const FP = require('functional-promises');
 
 const T = new Twit({
   consumer_key: process.env.consumer_key,
@@ -15,14 +16,14 @@ module.exports = {
       count: 200,
       cursor,
     })
-      .then(({ data }) => data);
+      .then(({ data }) => FP.delay(5000).then(() => data));
   },
   
   getUsers(screenNames) {
     return T.post('users/lookup', {
       screen_name: screenNames
     })
-      .then(({ data }) => data);
+      .then(({ data }) => FP.delay(5000).then(() => data));
   },
 
   unfollow(screen_name) {
