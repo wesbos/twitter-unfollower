@@ -1,3 +1,5 @@
+const log = require('debug')('twit-cli:twit');
+const { camelify } = require('./transforms.js');
 const Twit = require('twit');
 const FP = require('functional-promises');
 
@@ -16,20 +18,25 @@ module.exports = {
       count: 200,
       cursor,
     })
-      .then(({ data }) => FP.delay(5000).then(() => data));
+      .tap(log.bind(null, 'getFriendList'))
+      .get('data')
+      .then(camelify)
+      // .then(({ data }) => FP.delay(2000).then(() => data));
   },
   
   getUsers(screenNames) {
     return T.post('users/lookup', {
       screen_name: screenNames
     })
-      .then(({ data }) => FP.delay(5000).then(() => data));
+      .tap(log.bind(null, 'getUsers'))
+      .then(({ data }) => data)
+      .then(camelify);
   },
 
   unfollow(screen_name) {
     return T.post('friendships/destroy', { screen_name })
+      .tap(log.bind(null, 'unfollow'))
   }
 
 };
-
 

@@ -4,6 +4,7 @@
   "description": "Unfollow Stale Accounts",
   "main": "index.js",
   "scripts": {
+    "dev": "DEBUG=twit-cli* node index.js",
     "start": "node index.js"
   },
   "engines": {
@@ -12,10 +13,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@hapi/joi": "^16.1.7",
+    "cli-progress": "^3.3.1",
     "debug": "^4.1.1",
     "diskdb": "^0.1.17",
     "dotenv": "^8.2.0",
     "functional-promises": "^1.7.94",
+    "lodash.camelcase": "^4.3.0",
     "ms": "^2.1.2",
     "twit": "^2.2.11"
   }

@@ -1,29 +1,39 @@
+const log = require('debug')('twit-cli:transforms');
 const camelCase = require('lodash.camelcase');
 
-exports.camelify = object => {
+const camelify = (object, recursive = true) => {
   return Object.entries(object)
-  .reduce((obj, [key, value]) =>{
-    obj[camelCase(key)] = typeof value === 'object' ? camelify(value) : value;
-    return obj
-  }, {})
+  .reduce((obj, [key, value]) => {
+    if (recursive === true && value) {
+      if (Array.isArray(value)) { 
+        value = value.map(v => camelify(v, recursive));
+      } else if (typeof value === 'object') {
+        value = camelify(value);
+      }
+    }
+    obj[camelCase(key)] = value;
+    return obj;
+  }, {});
 }
 
+exports.camelify = camelify;
+
 exports.followers = user => ({
-  screen_name: user.screen_name,
+  screenName: user.screenName,
   name: user.name,
-  id: user.id,
+  id: user.id
 });
 
 exports.userWithLastTweetTime = user => ({
-  screen_name: user.screen_name,
+  screenName: user.screenName,
   id: user.id,
-  lastTweet: new Date(user.status.created_at).getTime(),
+  lastTweet: new Date(user.status.createdAt).getTime(),
   timeSinceLastTweet:
-    Date.now() - new Date(user.status.created_at).getTime(),
+    Date.now() - new Date(user.status.createdAt).getTime(),
 });
 
 exports.setUserStatus = user => {
-  user.status = user.status || { created_at: 0 };
+  user.status = user.status || { createdAt: 0 };
   return user;
 };
 
@@ -32,7 +42,7 @@ exports.isActiveTwitterPoster = cutLimit => user => user.timeSinceLastTweet > cu
 exports.showUserInfo = user => {
   // TODO: .tap()
   console.log(
-    `${user.screen_name} last tweeted ${ms(user.timeSinceLastTweet)}`
+    `${user.screenName} last tweeted ${ms(user.timeSinceLastTweet)}`
   );
   return user;
 };
