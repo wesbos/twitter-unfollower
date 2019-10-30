@@ -25,7 +25,7 @@ async function getListOfPeopleYouFollow(cursor = -1) {
   // save to DB
   db.users.save(screenNames);
   if (data.next_cursor) {
-    getListOfPeopleYouFollow(data.next_cursor);
+    await getListOfPeopleYouFollow(data.next_cursor);
   } else {
     console.log('Thats it! Here is your list');
     console.log(db.users.find());
