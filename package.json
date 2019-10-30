@@ -21,6 +21,7 @@
     "functional-promises": "^1.7.94",
     "lodash.camelcase": "^4.3.0",
     "ms": "^2.1.2",
+    "pretty-ms": "^5.0.0",
     "twit": "^2.2.11"
   }
 }

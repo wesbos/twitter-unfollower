@@ -7,14 +7,14 @@ const FP = require('functional-promises');
 const chunkify = require('./chunking');
 const transforms = require('./transforms.js');
 const cliProgress = require('cli-progress');
-
-const collections = ['users', 'hydratedUsers', 'appState'];
-
+const collections = ['users', 'followerDetails', 'hydratedUsers', 'appState'];
 db.connect('./db', collections);
 
 const MAX_TWEET_AGE = ms('280 days');
 const RETRY_LIMIT = 8;
-const MAX_FOLLOWERS_TO_DOWNLOAD = 2000
+const MAX_FOLLOWERS_TO_DOWNLOAD = 200
+
+const USER_FIELDS = ['id', 'name', 'screenName', 'profileImageUrlHttps', 'location', 'description', 'favouritesCount', 'followersCount', 'friendsCount', 'listedCount']
 
 function go() {
   return FP.resolve()
@@ -39,7 +39,6 @@ function getListOfPeopleYouFollow(cursor = -1, retries = 0) {
   if (db.users.find().length >= MAX_FOLLOWERS_TO_DOWNLOAD) {
     return FP.resolve((db.users.find()))
   }
-  const fieldsToKeep = ['id', 'name', 'screenName', 'profileImageUrlHttps', 'location', 'description', 'favouritesCount', 'followersCount', 'friendsCount', 'listedCount']
 
   return FP.resolve(getFriendList(process.env.username, cursor))
     .catch(retryGetFollowers(cursor, retries))
@@ -53,7 +52,7 @@ function getListOfPeopleYouFollow(cursor = -1, retries = 0) {
       // }
 
       return FP.resolve(data.users)      // .concurrency(1)
-        .map(u => FP.resolve(u).get(fieldsToKeep))
+        .map(u => FP.resolve(u).get(USER_FIELDS))
         .then(data => db.users.save(data))
         // .then(screenNames => db.users.save(screenNames))
         .thenIf(() => data.nextCursor,
@@ -65,10 +64,11 @@ function getListOfPeopleYouFollow(cursor = -1, retries = 0) {
 
 function hydrateUsers(users = db.users.find()) {
   const screenNames = users
+    // .map(u => FP.resolve(u).get(USER_FIELDS))
     .map(transforms.followers)
     .map(transforms.getProp('screenName'))
   
-  console.log(`Loading tweets for ${screenNames.length} users`, screenNames)
+  console.log(`Loading tweets for ${screenNames.length} users`)
   return FP.resolve(chunkify(screenNames, 100))
     .concurrency(1)
     .map(findLastTweet)
@@ -83,17 +83,18 @@ function massUnfollow() {
 
 function findLastTweet(screenNames) {
   return FP.resolve(getUsers(screenNames))
-    .tap(results => console.log(`getUsers`, JSON.stringify(results, null, 2).slice(0, 512)))
+    .tap(results => db.followerDetails.save(results))
     .concurrency(1)
     .map(transforms.setUserStatus)
     .tap(() => FP.delay(500))
     .concurrency(1)
     .map(transforms.userWithLastTweetTime)
+    .then(followers => followers.sort((a, b) => a.lastTweet - b.lastTweet))
     .concurrency(1)
-    .map(transforms.showUserInfo)
-    .tap(results => console.log(`userInfo`, JSON.stringify(results, null, 2)))
     .filter(transforms.isActiveTwitterPoster(MAX_TWEET_AGE))
-    .tap(results => console.log('findLastTweet', results));
+    // .tap(results => console.log('findLastTweet', results));
+    .map(transforms.showUserInfo)
+    // .tap(results => console.log(`userInfo`, JSON.stringify(results, null, 2)))
 }
 
 function retryGetFollowers(cursor, retries) {
