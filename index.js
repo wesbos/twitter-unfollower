@@ -17,8 +17,9 @@ const RETRY_LIMIT = 8;
 const MAX_FOLLOWERS_TO_DOWNLOAD = 2000
 
 function go() {
-  return FP.resolve(resetDb())
-    .then(getListOfPeopleYouFollow)
+  return FP.resolve()
+    // .then(resetDb)
+    // .then(getListOfPeopleYouFollow)
     .then(hydrateUsers)
     .then(massUnfollow)
     .catch(handleError);
@@ -82,12 +83,15 @@ function massUnfollow() {
 
 function findLastTweet(screenNames) {
   return FP.resolve(getUsers(screenNames))
+    .tap(results => console.log(`getUsers`, JSON.stringify(results, null, 2).slice(0, 512)))
     .concurrency(1)
     .map(transforms.setUserStatus)
+    .tap(() => FP.delay(500))
     .concurrency(1)
     .map(transforms.userWithLastTweetTime)
     .concurrency(1)
     .map(transforms.showUserInfo)
+    .tap(results => console.log(`userInfo`, JSON.stringify(results, null, 2)))
     .filter(transforms.isActiveTwitterPoster(MAX_TWEET_AGE))
     .tap(results => console.log('findLastTweet', results));
 }
@@ -123,3 +127,4 @@ function handleError(err) {
   console.log('-------------');
 }
 
+process.on('unhandledRejection', handleError);

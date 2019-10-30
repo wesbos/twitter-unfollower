@@ -1,5 +1,5 @@
 const log = require('debug')('twit-cli:twit');
-const { camelify } = require('./transforms.js');
+const { camelify } = require('./utils.js');
 const Twit = require('twit');
 const FP = require('functional-promises');
 
@@ -28,9 +28,9 @@ module.exports = {
     return T.post('users/lookup', {
       screen_name: screenNames
     })
-      .tap(log.bind(null, 'getUsers'))
-      .then(({ data }) => data)
-      .then(camelify);
+      // .tap(log.bind(null, 'getUsers'))
+      .get('data')
+      .then(camelify)
   },
 
   unfollow(screen_name) {

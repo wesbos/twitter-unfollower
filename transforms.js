@@ -1,22 +1,5 @@
+const ms = require('ms');
 const log = require('debug')('twit-cli:transforms');
-const camelCase = require('lodash.camelcase');
-
-const camelify = (object, recursive = true) => {
-  return Object.entries(object)
-  .reduce((obj, [key, value]) => {
-    if (recursive === true && value) {
-      if (Array.isArray(value)) { 
-        value = value.map(v => camelify(v, recursive));
-      } else if (typeof value === 'object') {
-        value = camelify(value);
-      }
-    }
-    obj[camelCase(key)] = value;
-    return obj;
-  }, {});
-}
-
-exports.camelify = camelify;
 
 exports.followers = user => ({
   screenName: user.screenName,
