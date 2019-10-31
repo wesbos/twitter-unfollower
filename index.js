@@ -1,27 +1,33 @@
 require('dotenv').config();
 const log = require('debug')('twit-cli:index');
+const config = require('./config.js');
 const ms = require('ms');
-const db = require('diskdb');
-const { getFriendList, getUsers, unfollow } = require('./twit');
+const { getFriendList, getUsers, unfollow } = require('./twit.js');
 const FP = require('functional-promises');
-const chunkify = require('./chunking');
+const chunkify = require('./chunking.js');
 const transforms = require('./transforms.js');
 const cliProgress = require('cli-progress');
-const collections = ['users', 'followerDetails', 'hydratedUsers', 'appState'];
-db.connect('./db', collections);
-
-const MAX_TWEET_AGE = ms('280 days');
+const db = require('./db');
+const utils = require('./utils.js');
+const MAX_TWEET_AGE = ms(`${config.maxDays} days`);
 const RETRY_LIMIT = 8;
-const MAX_FOLLOWERS_TO_DOWNLOAD = 200
+const MAX_FOLLOWERS_TO_DOWNLOAD = 2500
 
 const USER_FIELDS = ['id', 'name', 'screenName', 'profileImageUrlHttps', 'location', 'description', 'favouritesCount', 'followersCount', 'friendsCount', 'listedCount']
 
 function go() {
+
   return FP.resolve()
-    // .then(resetDb)
-    // .then(getListOfPeopleYouFollow)
+    .thenIf(
+      () => config.refreshUsers,
+      resetDb,
+      () => console.warn(`Note: Skipping db reset, append mode.`))
+    .then(getListOfPeopleYouFollow)
     .then(hydrateUsers)
-    .then(massUnfollow)
+    .thenIf(
+      () => config.confirmUnfollow,
+      massUnfollow,
+      () => console.warn(`Note: Skipped UNFOLLOW STEP!. Add \`--confirm-unfollow\` argument.`))
     .catch(handleError);
 }
 
@@ -33,6 +39,8 @@ function resetDb() {
 }
 
 function getListOfPeopleYouFollow(cursor = -1, retries = 0) {
+  if (config.refreshUsers) return console.warn(`Note: Skipping Refresh of Your Twitter Followers`);
+
   if (retries > RETRY_LIMIT) return Promise.reject(new Error('Failed to download. Exceeded rate limits! Please try again later.'));
   if (cursor !== -1) { console.log(`Downloading next page...      `, cursor); }
 
@@ -56,7 +64,7 @@ function getListOfPeopleYouFollow(cursor = -1, retries = 0) {
         .then(data => db.users.save(data))
         // .then(screenNames => db.users.save(screenNames))
         .thenIf(() => data.nextCursor,
-          () => getListOfPeopleYouFollow(data.nextCursor), 
+          () => getListOfPeopleYouFollow(data.nextCursor),
           () => db.users.find())
     })
     .tap(users => console.log(`Downloaded ${users.length} followers!`))
@@ -67,7 +75,7 @@ function hydrateUsers(users = db.users.find()) {
     // .map(u => FP.resolve(u).get(USER_FIELDS))
     .map(transforms.followers)
     .map(transforms.getProp('screenName'))
-  
+
   console.log(`Loading tweets for ${screenNames.length} users`)
   return FP.resolve(chunkify(screenNames, 100))
     .concurrency(1)
@@ -77,12 +85,16 @@ function hydrateUsers(users = db.users.find()) {
 
 function massUnfollow() {
   return FP.resolve(db.hydratedUsers.find())
-    // .map(user => unfollow(user.screenName))
+    .map(user => FP
+      .delay(10)
+      .then(() => unfollow(user.screenName))
+      .tap(() => console.log(`Unfollowing ${user.name}\t\t${user.createdAt} ...`)))
     .tap(results => console.log(`Unfollowed ${results.length} users`));
 }
 
 function findLastTweet(screenNames) {
   return FP.resolve(getUsers(screenNames))
+    // .tap(utils.jsonPreview(12048))
     .tap(results => db.followerDetails.save(results))
     .concurrency(1)
     .map(transforms.setUserStatus)
@@ -94,32 +106,32 @@ function findLastTweet(screenNames) {
     .filter(transforms.isActiveTwitterPoster(MAX_TWEET_AGE))
     // .tap(results => console.log('findLastTweet', results));
     .map(transforms.showUserInfo)
-    // .tap(results => console.log(`userInfo`, JSON.stringify(results, null, 2)))
+    // .tap(utils.jsonPreview(2048))
 }
 
 function retryGetFollowers(cursor, retries) {
   return error => {
-     // console.error('Error', JSON.stringify(error, null, 2));
-     if (error.statusCode === 429) {
-       console.log(`NOTE: RATE LIMITED! WAITING 15 MINUTES... (try #${retries + 1}/${RETRY_LIMIT})`);
+    // console.error('Error', JSON.stringify(error, null, 2));
+    if (error.statusCode === 429) {
+      console.log(`NOTE: RATE LIMITED! WAITING 15 MINUTES... (try #${retries + 1}/${RETRY_LIMIT})`);
 
-        // create a new progress bar instance and use shades_classic theme
-        const startTime = new Date().getTime();
-        const delayBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+      // create a new progress bar instance and use shades_classic theme
+      const startTime = new Date().getTime();
+      const delayBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
-        // start the progress bar with a total value of 200 and start value of 0
-        delayBar.start(15.4 * 60 * 1000, 0);
-        
-        setInterval(
-          () => delayBar.update(new Date().getTime() - startTime), 500);
-        
-       return FP.delay(15.5 * 60 * 1000)
+      // start the progress bar with a total value of 200 and start value of 0
+      delayBar.start(15.4 * 60 * 1000, 0);
+
+      setInterval(
+        () => delayBar.update(new Date().getTime() - startTime), 500);
+
+      return FP.delay(15.5 * 60 * 1000)
         .then(() => delayBar.stop())
         .then(() => getListOfPeopleYouFollow(cursor, ++retries));
-     }
-     return Promise.reject(error);
-   }
- } 
+    }
+    return Promise.reject(error);
+  }
+}
 
 function handleError(err) {
   console.log('-------------');

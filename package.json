@@ -1,11 +1,11 @@
 {
-  "name": "0244-untweeps",
+  "name": "detweep",
   "version": "1.0.0",
   "description": "Unfollow Stale Accounts",
   "main": "index.js",
   "scripts": {
     "dev": "DEBUG=twit-cli* node index.js",
-    "start": "node index.js"
+    "start": "node index.js -- --max-days-180"
   },
   "engines": {
     "node": "12"

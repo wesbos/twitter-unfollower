@@ -3,7 +3,11 @@ const camelCase = require('lodash.camelcase');
 module.exports.camelify = camelify;
 module.exports.isArray = isArray;
 module.exports.isObject = isObject;
+module.exports.jsonPreview = jsonPreview;
 
+/**
+ * Camel Case all object keys, recursively.
+ */
 function camelify(object, recursive = true) {
   if (object && isArray(object)) {
     return object.map(v => isObject(v) ? camelify(v, recursive) : v);
@@ -18,6 +22,22 @@ function camelify(object, recursive = true) {
   return object;
 }
 
+/**
+ * Print first <limit> characters of given <object>.
+ */
+function jsonPreview(limit, object) {
+  const toJsonSlice = (object) => {
+    let jsonStr = JSON.stringify(object, null, 1);
+    const len = jsonStr.length;
+    if (jsonStr.length > limit) { 
+      jsonStr = jsonStr.slice(0, limit) + `\n... JSON TRUNCATED (showing ${limit}/${len})`; 
+    }
+    console.log(`JSON PREVIEW:`, jsonStr)
+    return object;
+  }
+  if (isObject(object) || isArray(object)) return toJsonSlice(object);
+  return o => toJsonSlice(o);
+}
 
 function isObject(object) {
   return object === Object(object) && !isArray(object) && typeof object !== 'function';
@@ -27,22 +47,3 @@ function isArray(object) {
   return object && Array.isArray(object)
 }
 
-
-// const single = camelify({first_name: 'dan', last_name: 'levy'})
-// const nested = camelify({
-//   data_list: [
-//     {first_name: 'dan', last_name: 'levy'},
-//     {first_name: 'rosie', last_name: 'the kitty', skills: ['biting', 'scratching', 'being cute']}
-//   ]
-// })
-// const extraNested = camelify({
-//   result_set: {
-//     data_list: [
-//       {first_name: 'dan', last_name: 'levy'},
-//       {first_name: 'rosie', last_name: 'the kitty', skills: ['biting', 'scratching', 'being cute']}
-//     ]
-//   }
-// })
-
-// console.log('single', JSON.stringify(single, null, 2))
-// console.log('nested', JSON.stringify(nested, null, 2))
