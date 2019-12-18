@@ -6,7 +6,7 @@ const chunkify = require('./chunking');
 
 db.connect('./db', ['users', 'hydratedUsers']);
 
-const cutLimit = ms('280 days');
+const cutLimit = ms('150 days');
 
 async function getListOfPeopleYouFollow(cursor = -1) {
   const { data } = await T.get('friends/list', {
