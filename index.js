@@ -3,6 +3,7 @@ const ms = require('ms');
 const db = require('diskdb');
 const T = require('./twit');
 const chunkify = require('./chunking');
+const wait = require('waait');
 
 db.connect('./db', ['users', 'hydratedUsers']);
 
@@ -25,6 +26,8 @@ async function getListOfPeopleYouFollow(cursor = -1) {
   // save to DB
   db.users.save(screenNames);
   if (data.next_cursor) {
+    // wait 1 minute to avoid rate limit
+    await wait(60000);
     getListOfPeopleYouFollow(data.next_cursor);
   } else {
     console.log('Thats it! Here is your list');
